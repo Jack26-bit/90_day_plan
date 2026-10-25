@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>90-Day Calendar</title>
+<style>
+:root{--bg:#fafaf7;--card:#fff;--text:#1d1d1b;--mute:#76766f;--line:#e4e4dc;--accent:#2f6fed;--done:#d8f0de;--donetx:#1c6b35;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#201f1e;--text:#ecece6;--mute:#9a9a92;--line:#34332f;--accent:#6c9bff;--done:#1e3a28;--donetx:#8fdca6}}
+:root[data-theme="dark"]{--bg:#161615;--card:#201f1e;--text:#ecece6;--mute:#9a9a92;--line:#34332f;--accent:#6c9bff;--done:#1e3a28;--donetx:#8fdca6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px;font-size:.95rem}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.stat{font-size:.85rem;color:var(--mute);margin-bottom:20px}
+.month{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.month h2{font-size:1.1rem;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{font-size:.72rem;color:var(--mute);text-align:center;padding-bottom:2px}
+.cell{min-height:58px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;color:inherit;background:transparent;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
+.cell.off{border-color:transparent;cursor:default;visibility:hidden}
+.cell .d{font-weight:600;font-size:.95rem}
+.cell .n{font-size:.68rem;color:var(--mute)}
+.cell.done{background:var(--done);color:var(--donetx)}
+.cell.done .n{color:var(--donetx)}
+.cell.sun .d{color:var(--accent)}
+.cell.mile{outline:2px solid var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.row label{display:flex;flex-direction:column;font-size:.75rem;color:var(--mute);gap:3px}
+.row input{font:inherit;font-size:.9rem;padding:5px 8px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;color-scheme:light dark}
+#nd{width:84px}
+button.act{font:inherit;font-size:.85rem;padding:6px 12px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;cursor:pointer}
+@media (max-width:520px){.cell{min-height:46px;padding:3px 4px}.cell .n{display:none}}
+@media print{.row{display:none}body{background:#fff;color:#000}.month{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+<h1 id="ttl">90-Day Calendar</h1>
+<p class="sub" id="sub"></p>
+<div class="bar"><i id="fill"></i></div>
+<div class="stat" id="stat"></div>
+<div class="row"><label>Start date<input type="date" id="sd"></label><label>Number of days<input type="number" id="nd" min="1" max="366"></label><button class="act" id="today">Start today</button><button class="act" id="reset">Reset</button><button class="act" onclick="window.print()">Print</button></div>
+<div id="out"></div>
+</main>
+<script>
+(function(){
+var START=new Date(2026,9,25),N=90,KEY="cal90_done_v1",CFG="cal90_cfg_v1";
+var MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var DW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var done={};
+try{var s=localStorage.getItem(KEY);if(s)done=JSON.parse(s)||{}}catch(e){}
+try{var c0=JSON.parse(localStorage.getItem(CFG)||"null");if(c0&&c0.s){var p0=c0.s.split("-");START=new Date(+p0[0],+p0[1]-1,+p0[2])}if(c0&&c0.n)N=c0.n}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(done))}catch(e){}}
+function dayAt(i){var d=new Date(START);d.setDate(START.getDate()+i);return d}
+var out=document.getElementById("out"),cells={};
+function build(){
+out.innerHTML="";cells={};
+var groups=[];
+for(var i=0;i<N;i++){var d=dayAt(i),k=d.getFullYear()+"-"+d.getMonth();
+ if(!groups.length||groups[groups.length-1].k!==k)groups.push({k:k,y:d.getFullYear(),m:d.getMonth(),items:[]});
+ groups[groups.length-1].items.push({i:i,d:d})}
+groups.forEach(function(g){
+ var box=document.createElement("section");box.className="month";
+ var h=document.createElement("h2");h.textContent=MN[g.m]+" "+g.y;box.appendChild(h);
+ var grid=document.createElement("div");grid.className="grid";
+ DW.forEach(function(w){var e=document.createElement("div");e.className="dow";e.textContent=w;grid.appendChild(e)});
+ var lead=g.items[0].d.getDay();
+ for(var p=0;p<lead;p++){var o=document.createElement("div");o.className="cell off";grid.appendChild(o)}
+ g.items.forEach(function(it){
+  var b=document.createElement("button");b.type="button";
+  var n=it.i+1;
+  b.className="cell"+(it.d.getDay()===0?" sun":"")+((n%30===0||n===N)?" mile":"");
+  b.innerHTML='<span class="d">'+it.d.getDate()+'</span><span class="n">Day '+n+'</span>';
+  b.setAttribute("aria-label",DW[it.d.getDay()]+" "+it.d.getDate()+" "+MN[it.d.getMonth()]+", day "+n);
+  b.onclick=function(){if(done[n])delete done[n];else done[n]=1;save();paint()};
+  cells[n]=b;grid.appendChild(b)});
+ box.appendChild(grid);out.appendChild(box)});
+updateSub();paint();}
+function fmt(d){return DW[d.getDay()]+" "+d.getDate()+" "+MN[d.getMonth()]+" "+d.getFullYear()}
+function ymd(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function updateSub(){var t=N+"-Day Calendar";document.getElementById("sub").textContent=fmt(START)+" to "+fmt(dayAt(N-1))+". Tap a day to mark it done. Outlined days mark every 30th day and the last day.";document.getElementById("ttl").textContent=t;document.title=t}
+function saveCfg(){try{localStorage.setItem(CFG,JSON.stringify({s:ymd(START),n:N}))}catch(e){}}
+function paint(){
+ var c=0;for(var n=1;n<=N;n++){if(done[n]){c++;cells[n].classList.add("done")}else cells[n].classList.remove("done")}
+ document.getElementById("fill").style.width=(c/N*100)+"%";
+ document.getElementById("stat").textContent=c+" of "+N+" days done";}
+var sd=document.getElementById("sd"),nd=document.getElementById("nd");
+sd.value=ymd(START);nd.value=N;
+sd.onchange=function(){var p=sd.value.split("-");if(p.length!==3)return;START=new Date(+p[0],+p[1]-1,+p[2]);saveCfg();build()};
+nd.onchange=function(){var v=parseInt(nd.value,10);if(!(v>=1))v=1;if(v>366)v=366;N=v;nd.value=v;saveCfg();build()};
+document.getElementById("today").onclick=function(){var t=new Date();START=new Date(t.getFullYear(),t.getMonth(),t.getDate());sd.value=ymd(START);saveCfg();build()};
+document.getElementById("reset").onclick=function(){done={};save();paint()};
+build();
+})();
+</script>
+</body>
+</html>
